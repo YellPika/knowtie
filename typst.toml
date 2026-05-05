@@ -1,0 +1,12 @@
+[package]
+name = "typst-notes"
+version = "1.0.0"
+entrypoint = "src/main.typ"
+authors = ["Anthony Vandikas"]
+license = "MIT"
+description = "A package for taking notes"
+homepage = "https://github.com/YellPika/typst-notes"
+repository = "https://github.com/YellPika/typst-notes"
+keywords = ["notes"]
+
+[tool.utpm]
