@@ -17,7 +17,18 @@
     This refers to @label.
     This also refers to #ref(scope("child", <label>)).
     This refers to #ref(scope("parent", <label>)).
+
+    Look at this footnote#footnote[
+      Referencing @label.
+      #figure(caption: [A figure in a footnote])[Isn't this crazy?] <figure>
+    ].
+
+    Referencing @figure.
   ]
+
+  Look at this other footnote#footnote[
+    Referencing @label.
+  ].
 
   This is a @missing-reference. This is also a #ref(scope("fake", <missing-reference>)).
 

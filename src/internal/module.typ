@@ -58,23 +58,20 @@
   assert.eq(type(id), str)
   target = selector(target)
 
-  if id not in modules() { return () }
-
-  let begin = selector(<module:begin>).and(metadata.where(value: id))
-  let end = selector(<module:end>).and(metadata.where(value: id))
   let markers = query(
-    selector(<module:child-begin>).or(<module:child-end>).and(metadata.where(value: id)),
+    selector(<module:begin>).or(selector(<module:end>)).and(metadata.where(value: id)),
   )
-
   let restrict = selector(<module:none>)
-  for marker in markers {
-    if marker.label == <module:child-begin> {
-      restrict = restrict.or(target.after(begin, inclusive: false).before(marker.location(), inclusive: false))
-    } else {
-      begin = selector(marker.location())
-    }
+  for (begin, end) in markers.chunks(2) {
+    // panic(markers.map(it => (it.label, it.location().position())))
+    // if begin.label == <module:end> {
+    //   (begin, end) = (end, begin)
+    // }
+    assert.eq(begin.label, <module:begin>)
+    assert.eq(end.label, <module:end>)
+    restrict = restrict.or(target.after(begin.location()).before(end.location()))
   }
-  restrict = restrict.or(target.after(begin, inclusive: false).before(end, inclusive: false))
+
   query(restrict)
 }
 
@@ -207,6 +204,13 @@
   link(target.location())[#supplement~#numbering(target.numbering, ..counter.at(target.location()))]
 }
 
+#let _footnote_entry(it) = {
+  // Configuration is not propagated to footnote entries, so we have to do it manually.
+  let cfg = _config()
+  cfg.at("id") = query(selector(<module:begin>).before(here())).rev().first().value
+  _config(cfg, it)
+}
+
 /// Constructs a module.
 /// -> content
 #let template(
@@ -223,23 +227,24 @@
   let parent = cfg.at("id", default: none)
   cfg.root = "root" not in cfg
   cfg.id = id
-  assert.eq(
-    query(selector(<module:begin>).and(metadata.where(value: id)).before(here(), inclusive: false)).len(),
-    0,
-    message: "Module '" + id + "' is already defined",
-  )
+  // assert.eq(
+  //   query(selector(<module:begin>).and(metadata.where(value: id)).before(here(), inclusive: false)).len(),
+  //   0,
+  //   message: "Module '" + id + "' is already defined",
+  // )
   _config(cfg, {
-    [#metadata(parent)<module:child-begin>]
+    [#metadata(parent)<module:end>]
     [#metadata(id)<module:begin>]
     if cfg.root {
       show ref: _ref.with(missing, duplicate)
       show link: _link.with(missing, duplicate)
+      show footnote.entry: _footnote_entry
       it
     } else {
       it
     }
     [#metadata(id)<module:end>]
-    [#metadata(parent)<module:child-end>]
+    [#metadata(parent)<module:begin>]
   })
 })
 

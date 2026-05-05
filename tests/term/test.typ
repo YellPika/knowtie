@@ -33,7 +33,5 @@
 
     #alias(scope("parent", <label>)) <label-2>
     Referencing @label-2.
-
-    // Look at this footnote#footnote[This is a @label].
   ]))
 ]))
