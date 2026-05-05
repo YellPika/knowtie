@@ -34,6 +34,8 @@
   /// The date of the note.
   /// -> datetime | auto
   date: auto,
+  /// The (absolute) location of the note index.
+  /// -> string | none
   index: none,
   /// The content of the note.
   /// -> content
