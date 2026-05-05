@@ -62,8 +62,8 @@
   show: internal.module.template.with(id)
   context if is-root() {
     show: internal.alias.template
-    // show: internal.term.template
-    // show: internal.export.template
+    show: internal.term.template
+    show: internal.export.template
 
     set document(title: title, author: author, keywords: keywords)
     set heading(numbering: "1.1")
