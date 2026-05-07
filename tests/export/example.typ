@@ -15,6 +15,6 @@
 #show: internal.term.template
 #show: internal.export.template.with("/bin/index.json")
 
-Referencing #ref(scope("tests/export/test", <term>))!
-
 Introducing #intro[example term]<example>!
+
+#include "./test.typ"

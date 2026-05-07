@@ -60,11 +60,10 @@
   }
 
   show: internal.module.template.with(id)
+  show: internal.alias.template
+  show: internal.term.template
+  show: internal.export.template.with(index)
   context if is-root() {
-    show: internal.alias.template
-    show: internal.term.template
-    show: internal.export.template.with(index)
-
     set document(title: title, author: author, keywords: keywords)
     set heading(numbering: "1.1")
     set enum(numbering: "1)")

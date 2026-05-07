@@ -64,8 +64,14 @@
   /// -> content
   it,
 ) = context {
+  import "module.typ": is-root
+
   assert.eq(type(it), content)
-  show ref: _ref
-  show link: _link
-  it
+  if is-root() {
+    show ref: _ref
+    show link: _link
+    it
+  } else {
+    it
+  }
 }

@@ -225,17 +225,18 @@
 ) = _config-init(context {
   let cfg = _config()
   let parent = cfg.at("id", default: none)
-  cfg.root = "root" not in cfg
+  if "root" not in cfg { cfg.root = id }
   cfg.id = id
-  // assert.eq(
-  //   query(selector(<module:begin>).and(metadata.where(value: id)).before(here(), inclusive: false)).len(),
-  //   0,
-  //   message: "Module '" + id + "' is already defined",
-  // )
+  cfg.parent = parent
+  assert.eq(
+    query(selector(<module:begin>).and(metadata.where(value: id)).before(here(), inclusive: false)).len(),
+    0,
+    message: "Module '" + id + "' is already defined",
+  )
   _config(cfg, {
     [#metadata(parent)<module:end>]
     [#metadata(id)<module:begin>]
-    if cfg.root {
+    if cfg.root == id {
       show ref: _ref.with(missing, duplicate)
       show link: _link.with(missing, duplicate)
       show footnote.entry: _footnote_entry
@@ -248,10 +249,18 @@
   })
 })
 
-/// Determines whether the current module is a root module.
-/// -> bool
-#let is-root() = _config().root
+/// Gets the unique identifier for the root module.
+/// -> str
+#let root-id() = _config().root
 
 /// Gets the unique identifier for the current module.
 /// -> str
 #let module-id() = _config().id
+
+/// Gets the unique identifier for the parent module.
+/// -> str
+#let parent-id() = _config().parent
+
+/// Determines whether the current module is a root module.
+/// -> bool
+#let is-root() = module-id() == root-id()

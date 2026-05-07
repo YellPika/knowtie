@@ -51,7 +51,10 @@ main = shakeArgs shakeOptions{shakeThreads = 0, shakeFiles = "bin"} do
 
   "bin//*.json" %> \out → do
     let src = dropDirectory1 out -<.> "typ"
-    need [src]
+    need [src, "bin/fake-index.json"]
 
-    Stdout result ← cmd "typst query --root . --field value" src "<metadata>"
+    Stdout result ← cmd "typst query --input index=/bin/fake-index.json --root . --field value" src "<metadata>"
     writeFile' out result
+
+  "bin/fake-index.json" %> \out → do
+    writeFile' out "{}"

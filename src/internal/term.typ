@@ -50,8 +50,14 @@
   /// -> content
   it,
 ) = context {
+  import "module.typ": is-root
+
   assert.eq(type(it), content)
-  show metadata: _metadata
-  show ref: _ref
-  it
+  if is-root() {
+    show metadata: _metadata
+    show ref: _ref
+    it
+  } else {
+    it
+  }
 }
