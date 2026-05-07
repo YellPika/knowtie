@@ -159,7 +159,7 @@
     if str(it) not in exports { return fallback(id, it) }
     let data = exports.at(str(it))
     link-to(id, text(blue, data))
-    [#metadata((
+    if is-root() [#metadata((
       type: "import",
       value: id,
     ))<metadata>]
