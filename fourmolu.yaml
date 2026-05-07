@@ -1,0 +1,23 @@
+function-arrows: leading
+haddock-style: single-line
+indentation: 2
+single-constraint-parens: never
+single-deriving-parens: never
+sort-constraints: true
+sort-derived-classes: true
+sort-deriving-clauses: true
+unicode: detect
+fixities:
+  - infixr 0 <?>
+  - infixl 3 <|>
+  - infixl 4 <$>
+  - infixl 4 <$
+  - infixl 4 <*>
+  - infixl 4 <*
+  - infixl 4 *>
+  - infix 4 ==
+  - infix 4 /=
+  - infixr 3 &&
+  - infixr 2 ||
+  - infixr 0 $
+  - infixr 9 .
