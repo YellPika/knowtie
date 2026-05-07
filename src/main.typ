@@ -63,7 +63,7 @@
   context if is-root() {
     show: internal.alias.template
     show: internal.term.template
-    show: internal.export.template
+    show: internal.export.template.with(index)
 
     set document(title: title, author: author, keywords: keywords)
     set heading(numbering: "1.1")
@@ -75,12 +75,19 @@
     it
 
     import "@preview/sertyp:0.1.3": serialize
-    [#metadata(serialize((title: title, author: author)))<metadata>]
+    [#metadata((
+      type: "title",
+      value: serialize(title),
+    ))<metadata>]
+    [#metadata((
+      type: "author",
+      value: author,
+    ))<metadata>]
+
+    backlinks()
   } else {
     heading(head)
     set heading(depth: heading.depth + 1)
     it
   }
-
-  backlinks(index)
 }

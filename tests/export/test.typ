@@ -7,13 +7,15 @@
 
 #show: internal.module.template.with(
   "export/test",
-  missing: default-missing.with(index: "/tests/export/index.yaml"),
+  missing: default-missing.with(fallback: (id, it) => {
+    text(orange)[*?#str(it)*]
+  }),
 )
 #show: internal.alias.template
 #show: internal.term.template
-#show: internal.export.template
+#show: internal.export.template.with("/tests/export/index.yaml")
 
-Number of exports: #context query-in(auto, <export>).len()
+Number of exports: #context query-in(auto, <metadata>).filter(it => it.value.type == "export").len()
 
 This is a #intro[term]<term>.
 
@@ -25,6 +27,6 @@ This is a #intro[term]<term>.
 
 This is an @example.
 
-#backlinks("/tests/export/index.yaml")
+#backlinks()
 
-#overview("/tests/export/index.yaml")
+#overview()

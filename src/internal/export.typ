@@ -40,11 +40,11 @@
   import "@preview/sertyp:0.1.2": serialize
 
   if is-root() and is-term(it) and it.has("label") {
-    let value = (
-      type: "term",
-      default: it.value.default,
-    )
-    [#metadata((label: str(it.label), value: serialize(value)))<export>]
+    [#metadata((
+      type: "export",
+      label: str(it.label),
+      value: serialize(it.value.default),
+    ))<metadata>]
   }
   it
 }
@@ -54,11 +54,11 @@
   import "@preview/sertyp:0.1.2": serialize
 
   if is-root() and it.has("label") and it.supplement.func() != (context {}).func() {
-    let value = (
-      type: "figure",
-      display: [#it.supplement #numbering(it.numbering, ..it.counter.get()) (#document.title)],
-    )
-    [#metadata((label: str(it.label), value: serialize(value)))<export>]
+    [#metadata((
+      type: "export",
+      label: str(it.label),
+      value: serialize[#it.supplement #numbering(it.numbering, ..it.counter.get()) (#document.title)],
+    ))<metadata>]
   }
   it
 }
@@ -66,125 +66,138 @@
 /// Handles exports.
 /// -> content
 #let template(
+  ..args,
   /// The content to modify.
   /// -> content
   it,
 ) = context {
-  show metadata: _metadata
-  show figure: _figure
-  it
-}
-
-#let get-index(..args) = {
+  import "module.typ": _config, is-root
   import "@preview/sertyp:0.1.3": deserialize
 
   assert.eq(args.named().len(), 0)
   assert(args.pos().len() <= 1)
-  let index = args.pos().at(0, default: none)
 
-  if index == none {
-    if "index" in sys.inputs {
-      index = sys.inputs.index
-    } else {
-      return (:)
-    }
+  // Figure out index path.
+  let index-path = args.pos().at(0, default: none)
+  if index-path == none and "index" in sys.inputs {
+    index-path = sys.inputs.index
   }
 
-  let index = yaml(index)
-  if index == none { index = (:) }
-  for (key, value) in index {
-    if "exports" not in value or value.exports == none {
-      value.exports = (:)
-    } else {
-      for (label, data) in value.exports {
-        data = deserialize(data)
-        value.exports.at(label) = data
-      }
-    }
-    if "imports" not in value or value.imports == none {
-      value.imports = ()
-    }
-    if "metadata" not in value or value.metadata == none {
-      value.metadata = (
+  // Load index if possible.
+  let raw-index = none
+  if index-path != none { raw-index = yaml(index-path) }
+
+  // Clean index
+  let index = (:)
+  if raw-index != none {
+    for (key, entries) in raw-index {
+      let data = (
+        exports: (:),
+        imports: (),
+        author: "Unknown Author",
         title: [Untitled],
-        author: [Unknown Author],
+        modified: datetime(day: 1, month: 1, year: 0),
       )
-    } else {
-      value.metadata = deserialize(value.metadata)
+
+      if entries == none { entries = (:) }
+      assert.eq(type(entries), array)
+      for entry in entries {
+        assert("type" in entry)
+        if entry.type == "author" {
+          assert.eq(type(entry.value), str)
+          data.author = entry.value
+        } else if entry.type == "title" {
+          let value = deserialize(entry.value)
+          assert.eq(type(value), content)
+          data.title = value
+        } else if entry.type == "export" {
+          let value = deserialize(entry.value)
+          assert.eq(type(entry.label), str)
+          assert.eq(type(value), content)
+          data.exports.insert(entry.label, value)
+        } else if entry.type == "import" {
+          assert.eq(type(entry.value), str)
+          data.imports.push(entry.value)
+        } else if entry.type == "modified" {
+          data.modified = datetime(..entry.value)
+        } else {
+          panic("Unknown entry type " + repr(entry.type))
+        }
+      }
+
+      index.insert(key, data)
     }
-    if "created" not in value or value.created == none {
-      value.created = datetime.today()
-    } else {
-      value.created = datetime(..value.created)
-    }
-    if "modified" not in value or value.modified == none {
-      value.modified = datetime.today()
-    } else {
-      value.modified = datetime(..value.modified)
-    }
-    index.at(key) = value
   }
-  index
+
+  show metadata: _metadata
+  show figure: _figure
+
+  let cfg = _config()
+  cfg.index = index
+  _config(cfg, it)
+}
+
+#let get-index() = {
+  import "module.typ": _config
+  _config().index
 }
 
 #let default-missing = {
   import "module.typ" as module
-  (id, it, index: none, fallback: module.default-missing) => {
+  (id, it, fallback: module.default-missing) => {
     if id == auto { return fallback(id, it) }
-    let index = get-index(index)
+    let index = get-index()
     if id not in index { return fallback(id, it) }
     let exports = index.at(id).exports
     if str(it) not in exports { return fallback(id, it) }
     let data = exports.at(str(it))
-    let display = if data.type == "term" {
-      text(blue, data.default)
-    } else if data.type == "figure" {
-      text(blue)[FIGURE]
-    } else {
-      panic("Unknown export type '" + target.type + "'")
-    }
-    link-to(id, display)
+    link-to(id, text(blue, data))
+    [#metadata((
+      type: "import",
+      value: id,
+    ))<metadata>]
   }
 }
 
-#let entries(key: none, section: [], ..args) = {
+#let entries(key: none, section: []) = {
   import "module.typ": module-id, modules
 
   if key == none { key = (_, _) => true }
 
-  let entries = ()
-  for (id, data) in get-index(..args) {
-    if key(id, data) {
-      let key = data.modified
-      entries.push((
-        key: key,
-        value: link-to(id)[
-          *#data.metadata.title*
-          #text(luma(70%))[[#id]] \
-          #data.modified.display("[weekday], [month repr:long] [day], [year]") \
-          #data.metadata.author
-        ],
-      ))
+  context {
+    let entries = ()
+    for (id, data) in get-index() {
+      if key(id, data) {
+        let key = data.modified
+        entries.push((
+          key: key,
+          value: link-to(id)[
+            *#data.title*
+            #text(luma(70%))[[#id]] \
+            #data.modified.display("[weekday], [month repr:long] [day], [year]") \
+            #data.author
+          ],
+        ))
+      }
     }
-  }
 
-  if entries.len() > 0 {
-    heading(numbering: none, section)
-    set par(justify: false)
-    columns(2, list(..entries.sorted(key: it => it.key).rev().map(it => it.value), tight: false))
+    if entries.len() > 0 {
+      heading(numbering: none, section)
+      set par(justify: false)
+      columns(2, list(..entries.sorted(key: it => it.key).rev().map(it => it.value), tight: false))
+    }
   }
 }
 
-#let backlinks(..args) = context {
+#let backlinks() = context {
   import "module.typ": module-id, modules
   entries(
     key: (id, data) => module-id() in data.imports and id not in modules(),
     section: [Backlinks],
-    ..args,
   )
 }
 
-#let overview(..args) = {
+#let overview() = {
   import "module.typ": module-id, modules
-  entries(section: [Overview], ..args)
+  entries(section: [Overview])
 }
