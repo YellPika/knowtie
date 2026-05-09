@@ -3,7 +3,10 @@
 module Main (main) where
 
 import Data.Aeson (Value, eitherDecodeFileStrict, encodeFile)
+import Data.HashMap.Lazy qualified as HashMap
+import Data.List (stripPrefix)
 import Data.Map qualified as Map
+import Data.Maybe (fromJust, fromMaybe)
 import Data.Traversable (for)
 import Development.Shake (
   ShakeOptions (shakeFiles),
@@ -20,41 +23,52 @@ import Development.Shake (
   shakeThreads,
   writeFile',
   (%>),
+  (<//>),
  )
+import Development.Shake.Config (readConfigFile, usingConfig)
 import Development.Shake.FilePath (
-  dropDirectory1,
   dropExtension,
   (-<.>),
   (</>),
  )
+import System.IO.Error (catchIOError, isDoesNotExistError)
 
 main ∷ IO ()
-main = shakeArgs shakeOptions{shakeThreads = 0, shakeFiles = "bin"} do
-  phony "build" do
-    need ["bin/index.json"]
+main = do
+  cfg ←
+    readConfigFile "knowtie.cfg" `catchIOError` \e →
+      if isDoesNotExistError e
+        then pure mempty
+        else ioError e
+  let bin = fromMaybe ".knowtie" (HashMap.lookup "INDEX_DIRECTORY" cfg)
+  shakeArgs shakeOptions{shakeThreads = 0, shakeFiles = bin} do
+    usingConfig cfg
 
-  phony "clean" do
-    removeFilesAfter "bin" ["//*"]
+    phony "build" do
+      need [bin </> "index.json"]
 
-  "bin/index.json" %> \out → do
-    sources ← getDirectoryFiles "" ["//*.typ"]
-    need ["bin" </> src -<.> "json" | src ← sources]
+    phony "clean" do
+      removeFilesAfter bin ["//*"]
 
-    putInfo ("Compiling " ++ out)
-    objects ←
-      Map.fromList <$> for sources \src → do
-        res ← liftIO (eitherDecodeFileStrict ("bin" </> src -<.> "json"))
-        case res of
-          Left e → fail e
-          Right x → pure (dropExtension src, x ∷ Value)
-    liftIO (encodeFile out objects)
+    bin </> "index.json" %> \out → do
+      sources ← getDirectoryFiles "" ["//*.typ"]
+      need [bin </> "index" </> src -<.> "json" | src ← sources]
 
-  "bin//*.json" %> \out → do
-    let src = dropDirectory1 out -<.> "typ"
-    need [src, "bin/fake-index.json"]
+      putInfo ("Compiling " ++ out)
+      objects ←
+        Map.fromList <$> for sources \src → do
+          res ← liftIO (eitherDecodeFileStrict (bin </> "index" </> src -<.> "json"))
+          case res of
+            Left e → fail e
+            Right x → pure (dropExtension src, x ∷ Value)
+      liftIO (encodeFile out objects)
 
-    Stdout result ← cmd "typst query --input index=/bin/fake-index.json --root . --field value" src "<metadata>"
-    writeFile' out result
+    bin </> "index" <//> "*.json" %> \out → do
+      let src = fromJust (stripPrefix (bin </> "index/") out) -<.> "typ"
+      need [src, bin </> "fake-index.json"]
 
-  "bin/fake-index.json" %> \out → do
-    writeFile' out "{}"
+      Stdout result ← cmd "typst query --input" ("index=" </> bin </> "fake-index.json") "--root . --field value" src "<metadata>"
+      writeFile' out result
+
+    bin </> "fake-index.json" %> \out → do
+      writeFile' out "{}"
