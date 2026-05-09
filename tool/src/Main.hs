@@ -85,8 +85,54 @@ main = do
     phony "init" do
       writeFileLines "knowtie.cfg" ["EDITOR=code"]
       writeFileLines ".gitignore" [".knowtie"]
+      writeFileLines
+        (".vscode" </> "extensions.json")
+        [ "{"
+        , "  \"recommendations\": ["
+        , "    \"myriad-dreamin.tinymist\","
+        , "    \"Gruntfuggly.triggertaskonsave\""
+        , "  ],"
+        , "}"
+        ]
+      writeFileLines
+        (".vscode" </> "settings.json")
+        [ "{"
+        , "  \"triggerTaskOnSave.tasks\": {"
+        , "    \"build\": ["
+        , "      \"**/*.typ\","
+        , "    ],"
+        , "  },"
+        , "}"
+        ]
+      writeFileLines
+        (".vscode" </> "tasks.json")
+        [ "{"
+        , "  // See https://go.microsoft.com/fwlink/?LinkId=733558"
+        , "  // for the documentation about the tasks.json format"
+        , "  \"version\": \"2.0.0\","
+        , "  \"tasks\": ["
+        , "    {"
+        , "      \"label\": \"build\","
+        , "      \"type\": \"shell\","
+        , "      \"command\": \"knowtie build\","
+        , "      \"group\": {"
+        , "        \"kind\": \"build\","
+        , "        \"isDefault\": true"
+        , "      },"
+        , "      \"presentation\": {"
+        , "        \"echo\": true,"
+        , "        \"reveal\": \"never\","
+        , "        \"focus\": false,"
+        , "        \"panel\": \"shared\","
+        , "        \"showReuseMessage\": true,"
+        , "        \"clear\": false"
+        , "      }"
+        , "    }"
+        , "  ]"
+        , "}"
+        ]
       cmd_ "git init --initial-branch=main"
-      cmd_ "git add knowtie.cfg .gitignore"
+      cmd_ "git add knowtie.cfg .gitignore .vscode"
       cmd_ "git commit -am" ["Initial Commit"]
 
     bin </> "index.json" %> \out → do
