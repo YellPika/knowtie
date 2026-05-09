@@ -1,12 +1,12 @@
 [package]
-name = "notie"
+name = "knowtie"
 version = "1.0.0"
 entrypoint = "src/main.typ"
 authors = ["Anthony Vandikas"]
 license = "MIT"
 description = "A package for taking notes"
-homepage = "https://github.com/YellPika/notie"
-repository = "https://github.com/YellPika/notie"
+homepage = "https://github.com/YellPika/knowtie"
+repository = "https://github.com/YellPika/knowtie"
 keywords = ["notes"]
 
 [tool.utpm]

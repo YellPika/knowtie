@@ -1,5 +1,5 @@
 cabal-version: 3.0
-name: notie
+name: knowtie
 version: 0.1.0.0
 -- synopsis:
 -- description:
@@ -16,7 +16,7 @@ extra-doc-files: CHANGELOG.md
 common warnings
   ghc-options: -Wall
 
-executable notie
+executable knowtie
   import: warnings
   main-is: Main.hs
   default-extensions: UnicodeSyntax
@@ -29,4 +29,4 @@ executable notie
     shake,
 
   hs-source-dirs: src
-  default-language: GHC2024
+  default-language: GHC2021

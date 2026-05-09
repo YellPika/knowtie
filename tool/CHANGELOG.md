@@ -1,4 +1,4 @@
-# Revision history for notie
+# Revision history for knowtie
 
 ## 0.1.0.0 -- YYYY-mm-dd
 
