@@ -13,7 +13,7 @@
 )
 #show: internal.alias.template
 #show: internal.term.template
-#show: internal.export.template.with("/bin/index.json")
+#show: internal.export.template.with(index: yaml("/bin/index.json"))
 
 Number of exports: #context query-in(auto, <metadata>).filter(it => it.value.type == "export").len()
 

@@ -34,9 +34,9 @@
   /// The date of the note.
   /// -> datetime | auto
   date: auto,
-  /// The (absolute) location of the note index.
-  /// -> string | none
-  index: none,
+  /// The note index.
+  /// -> dict
+  index: (:),
   /// The content of the note.
   /// -> content
   it,
@@ -45,13 +45,17 @@
   assert.eq(type(title), content)
   assert(type(author) in (str, type(none)))
   assert.eq(type(it), content)
+  assert.eq(type(index), dictionary)
 
   let head = [#title #link-to(id, text(luma(70%))[[#id]])]
 
-  show: internal.module.template.with(id)
+  show: internal.module.template.with(id, missing: internal.export.default-missing.with(fallback: (id, it) => text(
+    orange,
+    weight: "bold",
+  )[?#str(it)]))
   show: internal.alias.template
   show: internal.term.template
-  show: internal.export.template.with(index)
+  show: internal.export.template.with(index: index)
   context if is-root() {
     set document(title: title, author: author, keywords: keywords)
     set heading(numbering: "1.1")

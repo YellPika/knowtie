@@ -66,16 +66,18 @@
 /// Handles exports.
 /// -> content
 #let template(
-  ..args,
   /// The content to modify.
   /// -> content
   it,
+  /// The note index.
+  /// -> dict
+  index: (:),
 ) = context {
   import "module.typ": _config, is-root, module-id, parent-id, root-id
   import "@preview/sertyp:0.1.3": deserialize
 
-  assert.eq(args.named().len(), 0)
-  assert(args.pos().len() <= 1)
+  assert.eq(type(it), content)
+  assert.eq(type(index), dictionary)
 
   if not is-root() {
     // Modules appearing just below the root are imports.
@@ -85,15 +87,8 @@
     ))<metadata>]
     it
   } else {
-    // Figure out index path.
-    let index-path = args.pos().at(0, default: none)
-    if "index" in sys.inputs { index-path = sys.inputs.index }
-
-    // Load index if possible.
-    let raw-index = none
-    if index-path != none { raw-index = yaml(index-path) }
-
     // Clean index
+    let raw-index = index
     let index = (:)
     if raw-index != none {
       for (key, entries) in raw-index {
