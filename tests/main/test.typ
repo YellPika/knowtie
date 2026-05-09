@@ -6,5 +6,5 @@
   "tests/main/test",
   title: [Example Title],
   author: "Example Author",
-  date: datetime.today(),
+  date: datetime(day: 11, month: 11, year: 11),
 )

@@ -26,6 +26,7 @@ executable knowtie
     base,
     containers,
     shake,
+    text,
     unordered-containers,
 
   hs-source-dirs: src

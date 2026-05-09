@@ -1,17 +1,30 @@
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE DerivingStrategies #-}
 
 module Main (main) where
 
-import Data.Aeson (Value, eitherDecodeFileStrict, encodeFile)
+import Data.Aeson (
+  FromJSON (..),
+  Options (..),
+  Value (..),
+  defaultOptions,
+  eitherDecodeFileStrict,
+  eitherDecodeStrictText,
+  encodeFile,
+  genericParseJSON,
+ )
 import Data.HashMap.Lazy qualified as HashMap
 import Data.List (stripPrefix)
+import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (fromJust, fromMaybe)
+import Data.Text qualified as Text
 import Data.Traversable (for)
 import Development.Shake (
   ShakeOptions (shakeFiles),
   Stdout (Stdout),
   cmd,
+  cmd_,
   getDirectoryFiles,
   liftIO,
   need,
@@ -31,6 +44,7 @@ import Development.Shake.FilePath (
   (-<.>),
   (</>),
  )
+import GHC.Generics (Generic)
 import System.IO.Error (catchIOError, isDoesNotExistError)
 
 main ∷ IO ()
@@ -65,10 +79,34 @@ main = do
 
     bin </> "index" <//> "*.json" %> \out → do
       let src = fromJust (stripPrefix (bin </> "index/") out) -<.> "typ"
-      need [src, bin </> "fake-index.json"]
+          deps = bin </> "deps" </> src -<.> "json"
+      need [src, deps, bin </> "fake-index.json"]
+
+      mdeps ← liftIO (eitherDecodeFileStrict deps)
+      either fail (need . inputs) mdeps
 
       Stdout result ← cmd "typst query --input" ("index=" </> bin </> "fake-index.json") "--root . --field value" src "<metadata>"
-      writeFile' out result
+      case eitherDecodeStrictText @[Map String Value] (Text.pack result) of
+        Left e → fail e
+        Right xs
+          | any ((== Just (String (Text.pack "modified"))) . Map.lookup "type") xs → writeFile' out result
+          | otherwise → do
+              Stdout result' ← cmd "git log -1 --follow --format=%ad --date" ["format:{\"day\": %-d, \"month\": %-m, \"year\": %-Y}"] src
+              case eitherDecodeStrictText (Text.pack result') of
+                Left e → fail e
+                Right d → liftIO (encodeFile out (Map.fromList [("type", String (Text.pack "modified")), ("value", d)] : xs))
+
+    bin </> "deps" <//> "*.json" %> \out → do
+      let src = fromJust (stripPrefix (bin </> "deps/") out) -<.> "typ"
+      need [src, bin </> "fake-index.json"]
+
+      cmd_ "typst compile --input" ("index=" </> bin </> "fake-index.json") "--root . --format svg --deps" out src "/dev/null"
 
     bin </> "fake-index.json" %> \out → do
       writeFile' out "{}"
+
+newtype Dependencies = Dependencies {inputs ∷ [FilePath]}
+  deriving Generic
+
+instance FromJSON Dependencies where
+  parseJSON = genericParseJSON defaultOptions{rejectUnknownFields = True}

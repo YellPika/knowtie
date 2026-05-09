@@ -11,5 +11,5 @@ This is an #text(blue)[example term].
 = Backlinks
 
 - *Untitled* #text(luma(70%))[[tests/export/example]] \
-  #datetime(day: 1, month: 1, year: 0).display("[weekday], [month repr:long] [day], [year]") \
+  #datetime(day: 7, month: 5, year: 2026).display("[weekday], [month repr:long] [day], [year]") \
   Unknown Author

@@ -48,15 +48,22 @@
 
   let head = [#title #link-to(id, text(luma(70%))[[#id]])]
 
-  let date = if date != auto {
-    date
-  } else {
+  if date == auto {
     let index = internal.export.get-index(index)
     if id in index {
       index.at(id).modified
     } else {
       datetime.today()
     }
+  } else {
+    let date-dict = (:)
+    if date.year() != none { date-dict.insert("year", date.year()) }
+    if date.month() != none { date-dict.insert("month", date.month()) }
+    if date.day() != none { date-dict.insert("day", date.day()) }
+    if date.hour() != none { date-dict.insert("hour", date.hour()) }
+    if date.minute() != none { date-dict.insert("minute", date.minute()) }
+    if date.second() != none { date-dict.insert("second", date.second()) }
+    [#metadata((type: "modified", value: date-dict))<metadata>]
   }
 
   show: internal.module.template.with(id)
@@ -74,14 +81,8 @@
     it
 
     import "@preview/sertyp:0.1.3": serialize
-    [#metadata((
-      type: "title",
-      value: serialize(title),
-    ))<metadata>]
-    [#metadata((
-      type: "author",
-      value: author,
-    ))<metadata>]
+    [#metadata((type: "title", value: serialize(title)))<metadata>]
+    [#metadata((type: "author", value: author))<metadata>]
 
     backlinks()
   } else {
