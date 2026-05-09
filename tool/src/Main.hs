@@ -68,17 +68,26 @@ main = do
       removeFilesAfter bin ["//*"]
 
     phony "new" do
-      StdoutTrim name ← cmd "mktemp" "XXXX.typ"
+      StdoutTrim name ← cmd "mktemp XXXX.typ"
+      StdoutTrim author ← cmd "git config user.name"
       writeFileLines
         name
         [ "#import \"@local/knowtie:1.0.0\": *"
         , "#show: template.with("
         , "  " ++ show (dropExtension name) ++ ","
+        , "  author: " ++ show (author ∷ String) ++ ","
         , "  title: [New Note],"
         , ")"
         ]
       editor ← getConfig "EDITOR" >>= maybe (getEnv "EDITOR" >>= maybe (pure "code") pure) pure
       cmd_ editor name
+
+    phony "init" do
+      writeFileLines "knowtie.cfg" ["EDITOR=code"]
+      writeFileLines ".gitignore" [".knowtie"]
+      cmd_ "git init --initial-branch=main"
+      cmd_ "git add knowtie.cfg .gitignore"
+      cmd_ "git commit -am" ["Initial Commit"]
 
     bin </> "index.json" %> \out → do
       sources ← getDirectoryFiles "" ["//*.typ"]
@@ -96,12 +105,12 @@ main = do
     bin </> "index" <//> "*.json" %> \out → do
       let src = fromJust (stripPrefix (bin </> "index/") out) -<.> "typ"
           deps = bin </> "deps" </> src -<.> "json"
-      need [src, deps, bin </> "fake-index.json"]
+      need [src, deps]
 
       mdeps ← liftIO (eitherDecodeFileStrict deps)
       either fail (need . inputs) mdeps
 
-      Stdout result ← cmd "typst query --input" ("index=" </> bin </> "fake-index.json") "--root . --field value" src "<metadata>"
+      Stdout result ← cmd "typst query --root . --field value" src "<metadata>"
       case eitherDecodeStrictText @[Map String Value] (Text.pack result) of
         Left e → fail e
         Right xs
@@ -109,17 +118,14 @@ main = do
           | otherwise → do
               Stdout result' ← cmd "git log -1 --follow --format=%ad --date" ["format:{\"day\": %-d, \"month\": %-m, \"year\": %-Y}"] src
               case eitherDecodeStrictText (Text.pack result') of
-                Left e → fail e
+                Left _ → writeFile' out result
                 Right d → liftIO (encodeFile out (Map.fromList [("type", String (Text.pack "modified")), ("value", d)] : xs))
 
     bin </> "deps" <//> "*.json" %> \out → do
       let src = fromJust (stripPrefix (bin </> "deps/") out) -<.> "typ"
-      need [src, bin </> "fake-index.json"]
+      need [src]
 
-      cmd_ "typst compile --input" ("index=" </> bin </> "fake-index.json") "--root . --format svg --deps" out src "/dev/null"
-
-    bin </> "fake-index.json" %> \out → do
-      writeFile' out "{}"
+      cmd_ "typst compile --root . --format svg --deps" out src "/dev/null"
 
 newtype Dependencies = Dependencies {inputs ∷ [FilePath]}
   deriving Generic

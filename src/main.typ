@@ -26,8 +26,8 @@
   /// -> content
   title: [],
   /// The author of the note.
-  /// -> str
-  author: auto,
+  /// -> str | none
+  author: none,
   /// A set of keywords describing the note.
   /// -> array | str
   keywords: (),
@@ -43,28 +43,10 @@
 ) = {
   assert.eq(type(id), str)
   assert.eq(type(title), content)
-  assert.eq(type(author), str)
+  assert(type(author) in (str, type(none)))
   assert.eq(type(it), content)
 
   let head = [#title #link-to(id, text(luma(70%))[[#id]])]
-
-  if date == auto {
-    let index = internal.export.get-index(index)
-    if id in index {
-      index.at(id).modified
-    } else {
-      datetime.today()
-    }
-  } else {
-    let date-dict = (:)
-    if date.year() != none { date-dict.insert("year", date.year()) }
-    if date.month() != none { date-dict.insert("month", date.month()) }
-    if date.day() != none { date-dict.insert("day", date.day()) }
-    if date.hour() != none { date-dict.insert("hour", date.hour()) }
-    if date.minute() != none { date-dict.insert("minute", date.minute()) }
-    if date.second() != none { date-dict.insert("second", date.second()) }
-    [#metadata((type: "modified", value: date-dict))<metadata>]
-  }
 
   show: internal.module.template.with(id)
   show: internal.alias.template
@@ -75,6 +57,25 @@
     set heading(numbering: "1.1")
     set enum(numbering: "1)")
     set par(justify: true)
+
+    let date = date
+    if date == auto {
+      let index = internal.export.get-index()
+      if id in index {
+        date = index.at(id).modified
+      } else {
+        date = datetime.today()
+      }
+    } else {
+      let date-dict = (:)
+      if date.year() != none { date-dict.insert("year", date.year()) }
+      if date.month() != none { date-dict.insert("month", date.month()) }
+      if date.day() != none { date-dict.insert("day", date.day()) }
+      if date.hour() != none { date-dict.insert("hour", date.hour()) }
+      if date.minute() != none { date-dict.insert("minute", date.minute()) }
+      if date.second() != none { date-dict.insert("second", date.second()) }
+      [#metadata((type: "modified", value: date-dict))<metadata>]
+    }
 
     std.title(head)
     [#date.display("[weekday], [month repr:long] [day], [year]") #sym.fence.dotted #author]
