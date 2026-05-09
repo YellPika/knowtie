@@ -23,9 +23,11 @@ import Data.Traversable (for)
 import Development.Shake (
   ShakeOptions (shakeFiles),
   Stdout (Stdout),
+  StdoutTrim (..),
   cmd,
   cmd_,
   getDirectoryFiles,
+  getEnv,
   liftIO,
   need,
   phony,
@@ -35,10 +37,11 @@ import Development.Shake (
   shakeOptions,
   shakeThreads,
   writeFile',
+  writeFileLines,
   (%>),
   (<//>),
  )
-import Development.Shake.Config (readConfigFile, usingConfig)
+import Development.Shake.Config (getConfig, readConfigFile, usingConfig)
 import Development.Shake.FilePath (
   dropExtension,
   (-<.>),
@@ -63,6 +66,19 @@ main = do
 
     phony "clean" do
       removeFilesAfter bin ["//*"]
+
+    phony "new" do
+      StdoutTrim name ← cmd "mktemp" "XXXX.typ"
+      writeFileLines
+        name
+        [ "#import \"@local/knowtie:1.0.0\": *"
+        , "#show: template.with("
+        , "  " ++ show (dropExtension name) ++ ","
+        , "  title: [New Note],"
+        , ")"
+        ]
+      editor ← getConfig "EDITOR" >>= maybe (getEnv "EDITOR" >>= maybe (pure "code") pure) pure
+      cmd_ editor name
 
     bin </> "index.json" %> \out → do
       sources ← getDirectoryFiles "" ["//*.typ"]
