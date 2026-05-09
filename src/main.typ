@@ -14,7 +14,7 @@
 #import internal.module: is-root, module-id, modules, query-in, scope, unscope
 #import internal.alias: alias, is-alias
 #import internal.term: intro, is-term
-#import internal.export: backlinks, link-to
+#import internal.export: backlinks, link-to, load-index
 
 /// Constructs a note.
 /// -> content
@@ -26,8 +26,8 @@
   /// -> content
   title: [],
   /// The author of the note.
-  /// -> str | none
-  author: none,
+  /// -> str | auto
+  author: auto,
   /// A set of keywords describing the note.
   /// -> array | str
   keywords: (),
@@ -43,7 +43,7 @@
 ) = {
   assert.eq(type(id), str)
   assert.eq(type(title), content)
-  assert(type(author) in (str, type(none)))
+  assert(type(author) in (str, type(auto)))
   assert.eq(type(it), content)
   assert.eq(type(index), dictionary)
 
@@ -57,11 +57,6 @@
   show: internal.term.template
   show: internal.export.template.with(index: index)
   context if is-root() {
-    set document(title: title, author: author, keywords: keywords)
-    set heading(numbering: "1.1")
-    set enum(numbering: "1)")
-    set par(justify: true)
-
     let date = date
     if date == auto {
       let index = internal.export.get-index()
@@ -81,13 +76,29 @@
       [#metadata((type: "modified", value: date-dict))<metadata>]
     }
 
+    let author = author
+    if author == auto {
+      let index = internal.export.get-index()
+      if id in index {
+        author = index.at(id).author
+      } else {
+        author = "Unknown Author"
+      }
+    } else {
+      [#metadata((type: "author", value: author))<metadata>]
+    }
+
+    set document(title: title, date: date, author: author, keywords: keywords)
+    set heading(numbering: "1.1")
+    set enum(numbering: "1)")
+    set par(justify: true)
+
     std.title(head)
     [#date.display("[weekday], [month repr:long] [day], [year]") #sym.fence.dotted #author]
     it
 
     import "@preview/sertyp:0.1.3": serialize
     [#metadata((type: "title", value: serialize(title)))<metadata>]
-    [#metadata((type: "author", value: author))<metadata>]
 
     backlinks()
   } else {

@@ -74,7 +74,6 @@
   index: (:),
 ) = context {
   import "module.typ": _config, is-root, module-id, parent-id, root-id
-  import "@preview/sertyp:0.1.3": deserialize
 
   assert.eq(type(it), content)
   assert.eq(type(index), dictionary)
@@ -87,49 +86,6 @@
     ))<metadata>]
     it
   } else {
-    // Clean index
-    let raw-index = index
-    let index = (:)
-    if raw-index != none {
-      for (key, entries) in raw-index {
-        let data = (
-          exports: (:),
-          imports: (),
-          author: "Unknown Author",
-          title: [Untitled],
-          modified: datetime(day: 1, month: 1, year: 0),
-        )
-
-        if entries == none { entries = (:) }
-        assert.eq(type(entries), array)
-        for entry in entries {
-          assert("type" in entry)
-          if entry.type == "author" {
-            assert.eq(type(entry.value), str)
-            data.author = entry.value
-          } else if entry.type == "title" {
-            let value = deserialize(entry.value)
-            assert.eq(type(value), content)
-            data.title = value
-          } else if entry.type == "export" {
-            let value = deserialize(entry.value)
-            assert.eq(type(entry.label), str)
-            assert.eq(type(value), content)
-            data.exports.insert(entry.label, value)
-          } else if entry.type == "import" {
-            assert.eq(type(entry.value), str)
-            data.imports.push(entry.value)
-          } else if entry.type == "modified" {
-            data.modified = datetime(..entry.value)
-          } else {
-            panic("Unknown entry type " + repr(entry.type))
-          }
-        }
-
-        index.insert(key, data)
-      }
-    }
-
     show metadata: _metadata
     show figure: _figure
 
@@ -202,4 +158,54 @@
 #let overview() = {
   import "module.typ": module-id, modules
   entries(section: [Overview])
+}
+
+#let load-index(..args) = {
+  import "@preview/sertyp:0.1.3": deserialize
+
+  assert.eq(args.pos().len(), 1)
+  assert.eq(args.named().len(), 0)
+  let raw-index = yaml(..args)
+  if raw-index == none { raw-index = (:) }
+
+  let index = (:)
+  for (key, entries) in raw-index {
+    let data = (
+      exports: (:),
+      imports: (),
+      author: "Unknown Author",
+      title: [Untitled],
+      modified: datetime(day: 1, month: 1, year: 0),
+    )
+
+    if entries == none { entries = (:) }
+    assert.eq(type(entries), array)
+    for entry in entries {
+      assert("type" in entry)
+      if entry.type == "author" {
+        assert.eq(type(entry.value), str)
+        data.author = entry.value
+      } else if entry.type == "title" {
+        let value = deserialize(entry.value)
+        assert.eq(type(value), content)
+        data.title = value
+      } else if entry.type == "export" {
+        let value = deserialize(entry.value)
+        assert.eq(type(entry.label), str)
+        assert.eq(type(value), content)
+        data.exports.insert(entry.label, value)
+      } else if entry.type == "import" {
+        assert.eq(type(entry.value), str)
+        data.imports.push(entry.value)
+      } else if entry.type == "modified" {
+        data.modified = datetime(..entry.value)
+      } else {
+        panic("Unknown entry type " + repr(entry.type))
+      }
+    }
+
+    index.insert(key, data)
+  }
+
+  index
 }

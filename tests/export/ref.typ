@@ -12,4 +12,4 @@ This is an #text(blue)[example term].
 
 - *Untitled* #text(luma(70%))[[tests/export/example]] \
   #datetime(day: 7, month: 5, year: 2026).display("[weekday], [month repr:long] [day], [year]") \
-  Unknown Author
+  YellPika

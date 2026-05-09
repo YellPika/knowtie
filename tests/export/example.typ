@@ -3,7 +3,7 @@
 #import internal.module: query-in, scope
 #import internal.term: intro
 #import internal.alias: alias
-#import internal.export: backlinks, default-missing, overview
+#import internal.export: backlinks, default-missing, load-index, overview
 
 #show: internal.module.template.with(
   "tests/export/example",
@@ -13,7 +13,7 @@
 )
 #show: internal.alias.template
 #show: internal.term.template
-#show: internal.export.template.with("/bin/index.json")
+#show: internal.export.template.with(index: load-index("/bin/index.json"))
 
 Introducing #intro[example term]<example>!
 
