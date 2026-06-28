@@ -188,7 +188,10 @@ main = do
           "/dev/null"
       pure ()
 
-newtype Dependencies = Dependencies {inputs ∷ [FilePath]}
+data Dependencies = Dependencies
+  { inputs ∷ [FilePath]
+  , outputs ∷ [FilePath]
+  }
   deriving Generic
 
 instance FromJSON Dependencies where
