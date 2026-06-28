@@ -1,17 +1,20 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Main (main) where
 
 import Data.Aeson (
   FromJSON (..),
   Options (..),
+  ToJSON (toJSON),
   Value (..),
   defaultOptions,
   eitherDecodeFileStrict,
   eitherDecodeStrictText,
   encodeFile,
   genericParseJSON,
+  genericToJSON,
  )
 import Data.HashMap.Lazy qualified as HashMap
 import Data.List (stripPrefix)
@@ -19,6 +22,8 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (fromJust, fromMaybe)
 import Data.Text qualified as Text
+import Data.Time.Calendar (toGregorian)
+import Data.Time.Clock (getCurrentTime, utctDay)
 import Data.Traversable (for)
 import Development.Shake (
   Action,
@@ -197,6 +202,16 @@ data Dependencies = Dependencies
 instance FromJSON Dependencies where
   parseJSON = genericParseJSON defaultOptions{rejectUnknownFields = True}
 
+data Date = Date
+  { day ∷ Int
+  , month ∷ Int
+  , year ∷ Integer
+  }
+  deriving Generic
+
+instance ToJSON Date where
+  toJSON = genericToJSON defaultOptions{rejectUnknownFields = True}
+
 addModified ∷ FilePath → [Map String Value] → Action [Map String Value]
 addModified src obj
   | any ((== Just (String (Text.pack "modified"))) . Map.lookup "type") obj = do
@@ -204,8 +219,11 @@ addModified src obj
   | otherwise = do
       Stdout date ← cmd (Traced "") "git log -1 --follow --format=%ad --date" ["format:{\"day\": %-d, \"month\": %-m, \"year\": %-Y}"] src
       case eitherDecodeStrictText (Text.pack date) of
-        Left _ → pure obj
         Right date' → pure (Map.fromList [("type", String (Text.pack "modified")), ("value", date')] : obj)
+        Left _ → do
+          now ← liftIO getCurrentTime
+          let (year, month, day) = toGregorian (utctDay now)
+          pure (Map.fromList [("type", String (Text.pack "modified")), ("value", toJSON Date{..})] : obj)
 
 addAuthor ∷ FilePath → [Map String Value] → Action [Map String Value]
 addAuthor src obj
@@ -213,6 +231,10 @@ addAuthor src obj
       pure obj
   | otherwise = do
       StdoutTrim author ← cmd (Traced "") "git log -1 --follow --format=%an" src
-      if author == ""
-        then pure obj
-        else pure (Map.fromList [("type", String (Text.pack "author")), ("value", String (Text.pack author))] : obj)
+      if author /= ""
+        then pure (Map.fromList [("type", String (Text.pack "author")), ("value", String (Text.pack author))] : obj)
+        else do
+          StdoutTrim author' ← cmd (Traced "") "git config user.name"
+          if author' /= ""
+            then pure (Map.fromList [("type", String (Text.pack "author")), ("value", String (Text.pack author'))] : obj)
+            else pure obj
