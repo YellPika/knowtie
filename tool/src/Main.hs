@@ -78,7 +78,7 @@ main = do
         , "#show: template.with("
         , "  " ++ show (dropExtension name) ++ ","
         , "  title: [New Note],"
-        , "  index: load-index(" ++ show (bin </> "index.json") ++ "),"
+        , "  index: load-index(" ++ show ("/" </> bin </> "index.json") ++ "),"
         , ")"
         ]
       editor ← getConfig "EDITOR" >>= maybe (getEnv "EDITOR" >>= maybe (pure "code") pure) pure
